@@ -1,16 +1,303 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="lv">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>replit</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molmasas kalkulators</title>
+    
+        <link rel = "stylesheet"
+href = "style.css">
+        
 </head>
-
 <body>
-  Hello world
-  <script src="script.js"></script>
-</body>
+    <div class="calculator-container">
+        <img src="LOGO.jpeg" alt="LOGO">
+        <h1>Molmasas kalkulators</h1>
+        
+        <div class="input-group">
+            <label for="formula">Ievadiet atsevišķus ķīmiskos elementus vai molekulu:</label>
+            <input type="text" id="formula" placeholder="Piemēram: H2O, Ca(OH)2, C6H12O6">
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="button-group">
+            <button class="button calculate-btn" id="calculate">Aprēķināt</button>
+            <button class="button clear-btn" id="clear">Notīrīt</button>
+        </div>
+        
+        <div class="result" id="result" style="display: none;">
+            <div class="result-title">Atbilde:</div>
+            <div id="answer"></div>
+            
+            <div class="result-title">Darba gaita:</div>
+            <div class="work-process" id="work-process"></div>
+        </div>
+        
+        <footer>
+            Konstantīns Sendze, Kristiāns Sendze
+        </footer>
+    </div>
 
+    <script>
+        const PERIODIC_TABLE = {
+            "H": 1.008,
+            "He": 4.0026,
+            "Li": 6.94,
+            "Be": 9.0122,
+            "B": 10.81,
+            "C": 12.01,
+            "N": 14.01,
+            "O": 16.00,
+            "F": 19.00,
+            "Ne": 20.18,
+            "Na": 22.99,
+            "Mg": 24.31,
+            "Al": 26.98,
+            "Si": 28.09,
+            "P": 30.97,
+            "S": 32.06,
+            "Cl": 35.45,
+            "K": 39.10,
+            "Ca": 40.08,
+            "Sc": 44.96,
+            "Ti": 47.87,
+            "V": 50.94,
+            "Cr": 52.00,
+            "Mn": 54.94,
+            "Fe": 55.85,
+            "Co": 58.93,
+            "Ni": 58.69,
+            "Cu": 63.55,
+            "Zn": 65.38,
+            "Ga": 69.72,
+            "Ge": 72.63,
+            "As": 74.92,
+            "Se": 78.97,
+            "Br": 79.90,
+            "Kr": 83.80,
+            "Rb": 85.47,
+            "Sr": 87.62,
+            "Y": 88.91,
+            "Zr": 91.22,
+            "Nb": 92.91,
+            "Mo": 95.95,
+            "Tc": 98,
+            "Ru": 101.1,
+            "Rh": 102.9,
+            "Pd": 106.4,
+            "Ag": 107.9,
+            "Cd": 112.4,
+            "In": 114.8,
+            "Sn": 118.7,
+            "Sb": 121.8,
+            "Te": 127.6,
+            "I": 126.9,
+            "Xe": 131.3,
+            "Cs": 132.9,
+            "Ba": 137.3,
+            "La": 138.9,
+            "Ce": 140.1,
+            "Pr": 140.9,
+            "Nd": 144.2,
+            "Pm": 145,
+            "Sm": 150.4,
+            "Eu": 152.0,
+            "Gd": 157.3,
+            "Tb": 158.9,
+            "Dy": 162.5,
+            "Ho": 164.9,
+            "Er": 167.3,
+            "Tm": 168.9,
+            "Yb": 173.0,
+            "Lu": 175.0,
+            "Hf": 178.5,
+            "Ta": 180.9,
+            "W": 183.8,
+            "Re": 186.2,
+            "Os": 190.2,
+            "Ir": 192.2,
+            "Pt": 195.1,
+            "Au": 197.0,
+            "Hg": 200.6,
+            "Tl": 204.4,
+            "Pb": 207.2,
+            "Bi": 209.0,
+            "Po": 209,
+            "At": 210,
+            "Rn": 222,
+            "Fr": 223,
+            "Ra": 226,
+            "Ac": 227,
+            "Th": 232.0,
+            "Pa": 231.0,
+            "U": 238.0,
+            "Np": 237,
+            "Pu": 244,
+            "Am": 243,
+            "Cm": 247,
+            "Bk": 247,
+            "Cf": 251,
+            "Es": 252,
+            "Fm": 257,
+            "Md": 258,
+            "No": 259,
+            "Lr": 262,
+            "Rf": 267,
+            "Db": 270,
+            "Sg": 271,
+            "Bh": 270,
+            "Hs": 277,
+            "Mt": 276,
+            "Ds": 281,
+            "Rg": 282,
+            "Cn": 285,
+            "Nh": 286,
+            "Fl": 289,
+            "Mc": 290,
+            "Lv": 293,
+            "Ts": 294,
+            "Og": 294
+        };
+
+        function tokenize(formula) {
+            const pattern = /([A-Z][a-z]?|\d+|\(|\))/g;
+            return formula.match(pattern) || [];
+        }
+
+        function parseTokens(tokens) {
+            const stack = [{}];
+            let i = 0;
+            const workProcess = [];
+            
+            while (i < tokens.length) {
+                const token = tokens[i];
+                
+                if (token === '(') {
+                    workProcess.push(`Atvērta iekava: sāk jaunu grupu`);
+                    stack.push({});
+                    i++;
+                } 
+                else if (token === ')') {
+                    if (stack.length === 1) {
+                        throw new Error("Nepareiza iekavu struktūra");
+                    }
+                    
+                    workProcess.push(`Aizvērta iekava: apstrādā grupu`);
+                    const group = stack.pop();
+                    i++;
+                    
+                    let multiplier = 1;
+                    if (i < tokens.length && /^\d+$/.test(tokens[i])) {
+                        multiplier = parseInt(tokens[i]);
+                        workProcess.push(`Reizinātājs aiz iekavām: ${multiplier}`);
+                        i++;
+                    }
+                    
+                    for (const [elem, count] of Object.entries(group)) {
+                        stack[stack.length - 1][elem] = (stack[stack.length - 1][elem] || 0) + count * multiplier;
+                        workProcess.push(`Pievieno ${elem} no grupas ar koeficientu ${multiplier}: ${elem} = ${count} × ${multiplier} = ${count * multiplier}`);
+                    }
+                } 
+                else if (/^[A-Z][a-z]?$/.test(token)) {
+                    const element = token;
+                    i++;
+                    let count = 1;
+                    
+                    if (i < tokens.length && /^\d+$/.test(tokens[i])) {
+                        count = parseInt(tokens[i]);
+                        workProcess.push(`Elements ${element} ar daudzumu ${count}`);
+                        i++;
+                    } else {
+                        workProcess.push(`Elements ${element} (pēc noklusējuma daudzums 1)`);
+                    }
+                    
+                    stack[stack.length - 1][element] = (stack[stack.length - 1][element] || 0) + count;
+                } 
+                else {
+                    throw new Error(`Neparedzēts simbols: ${token}`);
+                }
+            }
+            
+            if (stack.length !== 1) {
+                throw new Error("Nepareiza iekavu struktūra");
+            }
+            
+            return { elements: stack[0], workProcess };
+        }
+
+        function calculateMass(elements) {
+            let total = 0.0;
+            const calculations = [];
+            
+            for (const [elem, count] of Object.entries(elements)) {
+                if (!PERIODIC_TABLE[elem]) {
+                    throw new Error(`Nezināms elements: ${elem}`);
+                }
+                
+                const elementMass = PERIODIC_TABLE[elem];
+                const contribution = elementMass * count;
+                calculations.push(`${elem}: ${count} × ${elementMass} = ${contribution.toFixed(3)}`);
+                total += contribution;
+            }
+            
+            return { 
+                mass: total,
+                calculations 
+            };
+        }
+
+        document.getElementById('calculate').addEventListener('click', function() {
+            const formula = document.getElementById('formula').value.trim();
+            const resultDiv = document.getElementById('result');
+            const answerDiv = document.getElementById('answer');
+            const workProcessDiv = document.getElementById('work-process');
+            
+            if (!formula) {
+                alert("Lūdzu, ievadiet ķīmisko formulu!");
+                return;
+            }
+            
+            try {
+               
+                answerDiv.innerHTML = '';
+                workProcessDiv.innerHTML = '';
+                
+              
+                const tokens = tokenize(formula);
+                const { elements, workProcess } = parseTokens(tokens);
+                const { mass, calculations } = calculateMass(elements);
+                
+               
+                answerDiv.innerHTML = `Molārā masa ${formula} = <strong>${mass.toFixed(3)} g/mol</strong>`;
+                
+              
+                let workProcessText = "1. Formulas sadalīšana:\n   " + tokens.join(", ") + "\n\n";
+                workProcessText += "2. Elementu parsēšana:\n";
+                workProcess.forEach(step => {
+                    workProcessText += "   - " + step + "\n";
+                });
+                workProcessText += "\n3. Masas aprēķins:\n";
+                calculations.forEach(calc => {
+                    workProcessText += "   - " + calc + "\n";
+                });
+                workProcessText += `\n4. Kopējā masa: ${mass.toFixed(3)} g/mol`;
+                
+                workProcessDiv.textContent = workProcessText;
+                
+              
+                resultDiv.style.display = 'block';
+            } catch (e) {
+                answerDiv.innerHTML = `<span style="color: red;">Kļūda: ${e.message}</span>`;
+                workProcessDiv.textContent = "Lūdzu, pārbaudiet ievadīto formulu un mēģiniet vēlreiz.";
+                resultDiv.style.display = 'block';
+            }
+        });
+
+        document.getElementById('clear').addEventListener('click', function() {
+            document.getElementById('formula').value = '';
+            document.getElementById('result').style.display = 'none';
+        });
+    </script>
+</body>
 </html>
